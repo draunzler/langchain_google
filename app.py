@@ -1,18 +1,18 @@
-from flask import Flask, render_template, request
+from fastapi import FastAPI, Form
+from pydantic import BaseModel
 import os
-from dotenv import load_dotenv  # Import load_dotenv
+from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI, HarmBlockThreshold, HarmCategory
 from langchain.utilities import GoogleSearchAPIWrapper
 from langchain.agents import Tool, AgentType, initialize_agent
 import markdown2
+from fastapi.middleware.cors import CORSMiddleware
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Initialize LLM with the API key from the environment variable
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
-    api_key=os.getenv("LLM_API_KEY"),  # Use os.getenv to get the API key
+    api_key=os.getenv("LLM_API_KEY"),
     safety_settings={
         HarmCategory.HARM_CATEGORY_UNSPECIFIED: HarmBlockThreshold.BLOCK_NONE,
         HarmCategory.HARM_CATEGORY_DEROGATORY: HarmBlockThreshold.BLOCK_NONE,
@@ -28,11 +28,9 @@ llm = ChatGoogleGenerativeAI(
     }
 )
 
-# Set up environment variables for Google API
-os.environ["GOOGLE_CSE_ID"] = os.getenv("GOOGLE_CSE_ID")  # Use os.getenv to get the CSE ID
-os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")  # Use os.getenv to get the API key
+os.environ["GOOGLE_CSE_ID"] = os.getenv("GOOGLE_CSE_ID")
+os.environ["GOOGLE_API_KEY"] = os.getenv("GOOGLE_API_KEY")
 
-# Initialize Google Search and tools
 search = GoogleSearchAPIWrapper()
 tools = [
     Tool(
@@ -42,7 +40,6 @@ tools = [
     )
 ]
 
-# Initialize agent
 agent = initialize_agent(
     tools,
     llm,
@@ -51,25 +48,33 @@ agent = initialize_agent(
     return_intermediate_steps=True
 )
 
-# Flask app setup
-app = Flask(__name__)
+app = FastAPI()
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    query = None
-    final_response = None
-    intermediate_steps = []
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods
+    allow_headers=["*"],  # Allows all headers
+)
 
-    if request.method == 'POST':
-        query = request.form.get('query')
+class QueryRequest(BaseModel):
+    query: str
 
-        response = agent({"input": query})
-        
-        final_response = markdown2.markdown(response['output'])
-        intermediate_steps = response['intermediate_steps']
+@app.post("/generate-response")
+async def generate_response(data: QueryRequest):
+    response = agent({"input": data.query})
     
-    return render_template('index.html', query=query, final_response=final_response, intermediate_steps=intermediate_steps)
+    # Format the final response as markdown
+    final_response = markdown2.markdown(response['output'])
+    intermediate_steps = response['intermediate_steps']
+    
+    return {
+        "query": data.query,
+        "final_response": final_response,
+        "intermediate_steps": intermediate_steps
+    }
 
-# Run the Flask app
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

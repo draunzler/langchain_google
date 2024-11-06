@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Langchain Google Search</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Custom dark styles for the accordion */
+        .accordion-button {
+            background-color: #333 !important; /* Dark background for the accordion button */
+            color: white !important; /* Light text color for the button */
+        }
+
+        .accordion-button:not(.collapsed) {
+            background-color: #555 !important; /* Slightly lighter dark background when expanded */
+            color: white !important; /* Light text when expanded */
+        }
+
+        .accordion-item {
+            background-color: #444; /* Dark background for each accordion item */
+            border: none; /* Remove the default border */
+        }
+
+        .accordion-body {
+            background-color: #333; /* Dark background for the accordion body */
+            color: white; /* White text color for better readability */
+        }
+    </style>
+</head>
+<body class="bg-dark text-light">
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="text-center mb-4">
+                    <h1>Langchain Google Search</h1>
+                </div>
+
+                <div class="card p-4 shadow-sm bg-secondary text-light">
+                    <h3>Ask a Query</h3>
+                    <form id="queryForm">
+                        <div class="mb-3">
+                            <input type="text" id="queryInput" class="form-control" placeholder="Enter your query" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Submit</button>
+                    </form>
+                </div>
+
+                <!-- Response Section -->
+                <div id="responseSection" class="card mt-4 p-4 shadow-sm bg-secondary text-light" style="display: none;">
+                    <h4>Query:</h4>
+                    <p id="queryText"></p>
+                    <h5>Final Response:</h5>
+                    <div id="finalResponse" class="mb-3"></div>
+
+                    <h5>Intermediate Steps</h5>
+                    <div id="accordionExample" class="accordion"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+    <script>
+        document.getElementById('queryForm').addEventListener('submit', async function(event) {
+            event.preventDefault();
+            
+            const query = document.getElementById('queryInput').value;
+            const responseSection = document.getElementById('responseSection');
+            const queryText = document.getElementById('queryText');
+            const finalResponse = document.getElementById('finalResponse');
+            const accordionExample = document.getElementById('accordionExample');
+
+            // Clear previous results
+            queryText.textContent = '';
+            finalResponse.innerHTML = '';
+            accordionExample.innerHTML = '';
+            responseSection.style.display = 'none';
+
+            try {
+                const response = await fetch('http://127.0.0.1:8000/generate-response', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query })
+                });
+                const data = await response.json();
+
+                // Display results
+                queryText.textContent = data.query;
+                finalResponse.innerHTML = data.final_response;
+
+                console.log(data.intermediate_steps)
+
+                // Display intermediate steps
+                data.intermediate_steps.forEach((step, index) => {
+                    const stepDetails = step[0];
+                    const observation = step[1];
+
+                    const thought = stepDetails.log.split('Action:')[0].replace('Thought:', '').trim();
+                    const action = stepDetails.tool;
+                    const actionInput = stepDetails.tool_input;
+
+                    const stepContent = `
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading${index}">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
+                                    Step ${index + 1}
+                                </button>
+                            </h2>
+                            <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#accordionExample">
+                                <div class="accordion-body">
+                                    <strong class="text-primary">Thought:</strong> ${thought}<br>
+                                    <strong class="text-success">Action:</strong> ${action}<br>
+                                    <strong class="text-warning">Action Input:</strong> ${actionInput}<br>
+                                    <strong class="text-danger">Observation:</strong> ${observation}
+                                </div>
+                            </div>
+                        </div>`;
+
+                    accordionExample.insertAdjacentHTML('beforeend', stepContent);
+                });
+
+                responseSection.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error fetching response:', error);
+                alert('An error occurred while processing your query.');
+            }
+        });
+    </script>
+</body>
+</html>
