@@ -3,130 +3,971 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Langchain Google Search</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Enhanced LangChain Agent Interface</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.3.0/marked.min.js"></script>
     <style>
-        /* Custom dark styles for the accordion */
-        .accordion-button {
-            background-color: #333 !important; /* Dark background for the accordion button */
-            color: white !important; /* Light text color for the button */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
         }
-
-        .accordion-button:not(.collapsed) {
-            background-color: #555 !important; /* Slightly lighter dark background when expanded */
-            color: white !important; /* Light text when expanded */
+        #query-form {
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
         }
-
-        .accordion-item {
-            background-color: #444; /* Dark background for each accordion item */
-            border: none; /* Remove the default border */
+        #query-input {
+            flex: 1;
+            min-width: 300px;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
-
-        .accordion-body {
-            background-color: #333; /* Dark background for the accordion body */
-            color: white; /* White text color for better readability */
+        #submit-btn {
+            padding: 10px 15px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        #submit-btn:hover {
+            background-color: #45a049;
+        }
+        #options-container {
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+        }
+        .option-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .option-label {
+            font-size: 14px;
+            color: #555;
+        }
+        .thought-container {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+        }
+        .thought {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 3px solid #2196F3;
+        }
+        .action {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #fff3cd;
+            border-left: 3px solid #ffc107;
+        }
+        .result {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        .observation {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #e2e3e5;
+            border-left: 3px solid #6c757d;
+        }
+        .final-thought {
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #e0f7fa;
+            border-left: 3px solid #00acc1;
+        }
+        .final-detailed-thought {
+            margin: 15px 0;
+            padding: 15px;
+            background-color: #e8f5e9;
+            border-left: 3px solid #43a047;
+            border-radius: 5px;
+        }
+        .final-response {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #e7f3fe;
+            border-left: 3px solid #2196F3;
+            border-radius: 5px;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top-color: #09f;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .hidden {
+            display: none;
+        }
+        .collapsible {
+            background-color: #f1f8e9;
+            cursor: pointer;
+            padding: 10px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 16px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-radius: 5px 5px 0 0;
+        }
+        .active, .collapsible:hover {
+            background-color: #dcedc8;
+        }
+        .collapsible-content {
+            padding: 0 18px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.2s ease-out;
+            background-color: #f9f9f9;
+            border-radius: 0 0 5px 5px;
+        }
+        .toggle-icon {
+            margin-left: 10px;
+        }
+        .search-metrics {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            font-size: 14px;
+            color: #666;
+            padding: 10px;
+            background-color: #f5f5f5;
+            margin-top: 10px;
+            border-radius: 3px;
+        }
+        .search-metric {
+            flex: 1;
+            min-width: 150px;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            margin-bottom: 20px;
+        }
+        .tab {
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f1f1f1;
+            border: none;
+            font-size: 14px;
+        }
+        .tab.active {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-bottom: none;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .semantic-container {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .topic-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .topic-item {
+            padding: 5px 10px;
+            background-color: #e3f2fd;
+            border-radius: 15px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .topic-item:hover {
+            background-color: #bbdefb;
+        }
+        .topic-item.selected {
+            background-color: #2196F3;
+            color: white;
+        }
+        .result-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .credibility-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .credibility-high {
+            background-color: #4CAF50;
+        }
+        .credibility-medium {
+            background-color: #FFC107;
+        }
+        .credibility-low {
+            background-color: #F44336;
+        }
+        .help-icon {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            background-color: #2196F3;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 16px;
+            font-size: 12px;
+            cursor: help;
+            margin-left: 5px;
+        }
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 12px;
+        }
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        .cache-controls {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+            display: flex;
+            gap: 10px;
+        }
+        .cache-btn {
+            padding: 5px 10px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .cache-btn:hover {
+            background-color: #0b7dda;
+        }
+        .search-suggestion {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #e0f7fa;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .suggestion-item {
+            cursor: pointer;
+            color: #0277bd;
+            padding: 3px 0;
+        }
+        .suggestion-item:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
-<body class="bg-dark text-light">
-    <div class="container my-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="text-center mb-4">
-                    <h1>Langchain Google Search</h1>
+<body>
+    <h1>Enhanced Search & Research Assistant</h1>
+    
+    <div id="query-form">
+        <input type="text" id="query-input" placeholder="Enter your search query or research question..." />
+        <button id="submit-btn">Search</button>
+        <span id="loading" class="loading hidden"></span>
+        
+        <div id="options-container">
+            <div class="option-group">
+                <input type="checkbox" id="stream-checkbox" checked />
+                <label for="stream-checkbox" class="option-label">Stream thinking</label>
+                <div class="tooltip">
+                    <span class="help-icon">?</span>
+                    <span class="tooltip-text">See the agent's thinking process in real-time</span>
                 </div>
-
-                <div class="card p-4 shadow-sm bg-secondary text-light">
-                    <h3>Ask a Query</h3>
-                    <form id="queryForm">
-                        <div class="mb-3">
-                            <input type="text" id="queryInput" class="form-control" placeholder="Enter your query" required>
-                        </div>
-                        <button type="submit" class="btn btn-primary w-100">Submit</button>
-                    </form>
+            </div>
+            
+            <div class="option-group">
+                <label for="search-type" class="option-label">Search Type:</label>
+                <select id="search-type">
+                    <option value="standard">Standard Search</option>
+                    <option value="advanced">Advanced Search</option>
+                    <option value="topic">Topic Research</option>
+                    <option value="comparative">Comparative Research</option>
+                    <option value="semantic">Semantic Search</option>
+                    <option value="enriched">Enriched Search</option>
+                </select>
+                <div class="tooltip">
+                    <span class="help-icon">?</span>
+                    <span class="tooltip-text">Select the type of search to perform</span>
                 </div>
-
-                <!-- Response Section -->
-                <div id="responseSection" class="card mt-4 p-4 shadow-sm bg-secondary text-light" style="display: none;">
-                    <h4>Query:</h4>
-                    <p id="queryText"></p>
-                    <h5>Final Response:</h5>
-                    <div id="finalResponse" class="mb-3"></div>
-
-                    <h5>Intermediate Steps</h5>
-                    <div id="accordionExample" class="accordion"></div>
+            </div>
+            
+            <div class="option-group">
+                <label for="topic-input" class="option-label">Topic:</label>
+                <input type="text" id="topic-input" placeholder="Optional topic name" />
+                <div class="tooltip">
+                    <span class="help-icon">?</span>
+                    <span class="tooltip-text">Specify a topic name for organizing semantic search results</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="search-suggestion hidden" id="search-suggestions">
+            <div><strong>Try these search options:</strong></div>
+            <div class="suggestion-item" data-query="--site:edu covid vaccine effectiveness">Academic sources: --site:edu covid vaccine effectiveness</div>
+            <div class="suggestion-item" data-query="compare: Python vs JavaScript vs Rust">Compare languages: compare: Python vs JavaScript vs Rust</div>
+            <div class="suggestion-item" data-query="AI:What is the current state of artificial intelligence?">Research topic "AI": AI:What is the current state of artificial intelligence?</div>
+        </div>
+    </div>
+    
+    <div class="tabs">
+        <button class="tab active" data-tab="search-tab">Search Results</button>
+        <button class="tab" data-tab="semantic-tab">Semantic Search</button>
+        <button class="tab" data-tab="cache-tab">Cache Management</button>
+    </div>
+    
+    <div id="search-tab" class="tab-content active">
+        <div id="thoughts-container" class="thought-container hidden">
+            <h3>Agent's Thought Process:</h3>
+            <div id="thoughts"></div>
+        </div>
+        
+        <div id="detailed-thought-container" class="hidden">
+            <button class="collapsible">
+                <span>View Detailed Analysis</span>
+                <span class="toggle-icon">▼</span>
+            </button>
+            <div class="collapsible-content">
+                <div class="final-detailed-thought">
+                    <div id="final-detailed-thought"></div>
+                </div>
+                <div id="search-metrics" class="search-metrics"></div>
+            </div>
+        </div>
+        
+        <div id="response-container" class="final-response hidden">
+            <h3>Search Results:</h3>
+            <div id="final-response"></div>
+        </div>
+    </div>
+    
+    <div id="semantic-tab" class="tab-content">
+        <div class="semantic-container">
+            <h3>Semantic Search</h3>
+            <p>Search for semantically similar information from previously collected data.</p>
+            
+            <div id="semantic-search-form">
+                <div class="topic-list" id="topic-list">
+                    <div class="topic-item selected" data-topic="default">default</div>
+                    <!-- Topics will be loaded dynamically -->
+                </div>
+                
+                <div class="option-group">
+                    <input type="text" id="semantic-query-input" placeholder="Enter your semantic search query..." style="width: 70%;" />
+                    <button id="semantic-search-btn" class="cache-btn">Search</button>
+                </div>
+                
+                <div id="semantic-results" class="hidden">
+                    <h4>Semantic Search Results</h4>
+                    <div id="semantic-results-content"></div>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
-    <script>
-        document.getElementById('queryForm').addEventListener('submit', async function(event) {
-            event.preventDefault();
+    
+    <div id="cache-tab" class="tab-content">
+        <div class="semantic-container">
+            <h3>Cache Management</h3>
+            <p>View and manage the search result cache.</p>
             
-            const query = document.getElementById('queryInput').value;
-            const responseSection = document.getElementById('responseSection');
-            const queryText = document.getElementById('queryText');
-            const finalResponse = document.getElementById('finalResponse');
-            const accordionExample = document.getElementById('accordionExample');
-
-            // Clear previous results
-            queryText.textContent = '';
-            finalResponse.innerHTML = '';
-            accordionExample.innerHTML = '';
-            responseSection.style.display = 'none';
-
-            try {
-                const response = await fetch('http://127.0.0.1:8000/generate-response', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ query })
+            <div id="cache-stats" class="search-metrics">
+                <div class="search-metric">
+                    <strong>Total Entries:</strong> <span id="cache-total">-</span>
+                </div>
+                <div class="search-metric">
+                    <strong>Active Entries:</strong> <span id="cache-active">-</span>
+                </div>
+                <div class="search-metric">
+                    <strong>Expired Entries:</strong> <span id="cache-expired">-</span>
+                </div>
+            </div>
+            
+            <div class="cache-controls">
+                <button id="refresh-cache-btn" class="cache-btn">Refresh Stats</button>
+                <button id="clear-cache-btn" class="cache-btn">Clear Cache</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const queryInput = document.getElementById('query-input');
+            const submitBtn = document.getElementById('submit-btn');
+            const streamCheckbox = document.getElementById('stream-checkbox');
+            const searchTypeSelect = document.getElementById('search-type');
+            const topicInput = document.getElementById('topic-input');
+            const thoughtsContainer = document.getElementById('thoughts-container');
+            const thoughtsDiv = document.getElementById('thoughts');
+            const detailedThoughtContainer = document.getElementById('detailed-thought-container');
+            const finalDetailedThoughtDiv = document.getElementById('final-detailed-thought');
+            const searchMetricsDiv = document.getElementById('search-metrics');
+            const responseContainer = document.getElementById('response-container');
+            const finalResponseDiv = document.getElementById('final-response');
+            const loadingIndicator = document.getElementById('loading');
+            const searchSuggestions = document.getElementById('search-suggestions');
+            
+            // Semantic search elements
+            const semanticQueryInput = document.getElementById('semantic-query-input');
+            const semanticSearchBtn = document.getElementById('semantic-search-btn');
+            const topicList = document.getElementById('topic-list');
+            const semanticResults = document.getElementById('semantic-results');
+            const semanticResultsContent = document.getElementById('semantic-results-content');
+            
+            // Cache management elements
+            const cacheTotalSpan = document.getElementById('cache-total');
+            const cacheActiveSpan = document.getElementById('cache-active');
+            const cacheExpiredSpan = document.getElementById('cache-expired');
+            const refreshCacheBtn = document.getElementById('refresh-cache-btn');
+            const clearCacheBtn = document.getElementById('clear-cache-btn');
+            
+            // Setup tabs
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and contents
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(c => c.classList.remove('active'));
+                    
+                    // Add active class to clicked tab and its content
+                    tab.classList.add('active');
+                    const tabContentId = tab.getAttribute('data-tab');
+                    document.getElementById(tabContentId).classList.add('active');
+                    
+                    // Load data for specific tabs
+                    if (tabContentId === 'semantic-tab') {
+                        loadSemanticTopics();
+                    } else if (tabContentId === 'cache-tab') {
+                        loadCacheStats();
+                    }
                 });
-                const data = await response.json();
-
-                // Display results
-                queryText.textContent = data.query;
-                finalResponse.innerHTML = data.final_response;
-
-                console.log(data.intermediate_steps)
-
-                // Display intermediate steps
-                data.intermediate_steps.forEach((step, index) => {
-                    const stepDetails = step[0];
-                    const observation = step[1];
-
-                    const thought = stepDetails.log.split('Action:')[0].replace('Thought:', '').trim();
-                    const action = stepDetails.tool;
-                    const actionInput = stepDetails.tool_input;
-
-                    const stepContent = `
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="heading${index}">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse${index}" aria-expanded="true" aria-controls="collapse${index}">
-                                    Step ${index + 1}
-                                </button>
-                            </h2>
-                            <div id="collapse${index}" class="accordion-collapse collapse" aria-labelledby="heading${index}" data-bs-parent="#accordionExample">
-                                <div class="accordion-body">
-                                    <strong class="text-primary">Thought:</strong> ${thought}<br>
-                                    <strong class="text-success">Action:</strong> ${action}<br>
-                                    <strong class="text-warning">Action Input:</strong> ${actionInput}<br>
-                                    <strong class="text-danger">Observation:</strong> ${observation}
-                                </div>
-                            </div>
-                        </div>`;
-
-                    accordionExample.insertAdjacentHTML('beforeend', stepContent);
+            });
+            
+            // Setup search suggestions
+            document.querySelectorAll('.suggestion-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    queryInput.value = item.getAttribute('data-query');
                 });
-
-                responseSection.style.display = 'block';
-
-            } catch (error) {
-                console.error('Error fetching response:', error);
-                alert('An error occurred while processing your query.');
+            });
+            
+            // Show search suggestions
+            queryInput.addEventListener('focus', () => {
+                searchSuggestions.classList.remove('hidden');
+            });
+            
+            // Setup collapsible elements
+            const collapsibles = document.getElementsByClassName('collapsible');
+            for (let i = 0; i < collapsibles.length; i++) {
+                collapsibles[i].addEventListener('click', function() {
+                    this.classList.toggle('active');
+                    const content = this.nextElementSibling;
+                    const toggleIcon = this.querySelector('.toggle-icon');
+                    
+                    if (content.style.maxHeight) {
+                        content.style.maxHeight = null;
+                        toggleIcon.textContent = '▼';
+                    } else {
+                        content.style.maxHeight = content.scrollHeight + "px";
+                        toggleIcon.textContent = '▲';
+                    }
+                });
             }
+            
+            // API endpoint (adjust as needed)
+            const API_BASE_URL = 'http://localhost:8000';
+            
+            // Main search functionality
+            submitBtn.addEventListener('click', async function() {
+                const query = queryInput.value.trim();
+                if (!query) return;
+                
+                // Reset UI
+                thoughtsDiv.innerHTML = '';
+                finalResponseDiv.innerHTML = '';
+                finalDetailedThoughtDiv.innerHTML = '';
+                searchMetricsDiv.innerHTML = '';
+                thoughtsContainer.classList.add('hidden');
+                responseContainer.classList.add('hidden');
+                detailedThoughtContainer.classList.add('hidden');
+                loadingIndicator.classList.remove('hidden');
+                submitBtn.disabled = true;
+                
+                // Update search endpoint based on search type
+                let searchEndpoint = '/stream-response';
+                let requestBody = { query, stream: streamCheckbox.checked };
+                
+                // Handle different search types
+                const searchType = searchTypeSelect.value;
+                const topic = topicInput.value.trim();
+                
+                // Modify query based on search type and topic
+                let modifiedQuery = query;
+                
+                switch(searchType) {
+                    case 'advanced':
+                        // Leave query as is - advanced options should be in the query
+                        break;
+                    case 'topic':
+                        // Use the Topic Research tool
+                        modifiedQuery = `Use Topic Research tool for: ${query}`;
+                        break;
+                    case 'comparative':
+                        // Use the Comparative Research tool
+                        if (!query.includes('vs') && !query.includes('compare:')) {
+                            modifiedQuery = `compare: ${query}`;
+                        }
+                        break;
+                    case 'semantic':
+                        // Use Semantic Search
+                        modifiedQuery = `Use Semantic Search for: ${topic ? topic + ':' : ''} ${query}`;
+                        break;
+                    case 'enriched':
+                        // Use Enriched Search
+                        modifiedQuery = `Use Enriched Search for: ${query}`;
+                        break;
+                }
+                
+                // If topic is specified and not using semantic search, prefix the query
+                if (topic && searchType !== 'semantic' && !modifiedQuery.includes(':')) {
+                    modifiedQuery = `${topic}:${modifiedQuery}`;
+                }
+                
+                requestBody.query = modifiedQuery;
+                
+                try {
+                    if (streamCheckbox.checked) {
+                        // Use streaming endpoint
+                        thoughtsContainer.classList.remove('hidden');
+                        const response = await fetch(`${API_BASE_URL}/stream-response`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let finalDetailedThought = null;
+                        let searchMetrics = null;
+                        
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            
+                            const text = decoder.decode(value);
+                            const lines = text.split('\n').filter(line => line.trim());
+                            
+                            for (const line of lines) {
+                                try {
+                                    const thought = JSON.parse(line);
+                                    
+                                    // Handle different thought types
+                                    if (thought.type === 'final_thought') {
+                                        finalDetailedThought = thought.content;
+                                        continue; // Don't render this as a regular thought
+                                    } else if (thought.type === 'search_metrics') {
+                                        searchMetrics = thought.content;
+                                        continue; // Don't render this as a regular thought
+                                    } else if (thought.type === 'final_response') {
+                                        responseContainer.classList.remove('hidden');
+                                        finalResponseDiv.innerHTML = thought.content;
+                                    } else {
+                                        renderThought(thought);
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing JSON:', e, line);
+                                }
+                            }
+                        }
+                        
+                        // After streaming, display detailed thought if available
+                        if (finalDetailedThought) {
+                            displayDetailedThought(finalDetailedThought);
+                        }
+                        
+                        // Display search metrics if available
+                        if (searchMetrics) {
+                            displaySearchMetrics(searchMetrics);
+                        }
+                        
+                    } else {
+                        // Use non-streaming endpoint
+                        const response = await fetch(`${API_BASE_URL}/generate-response`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(requestBody)
+                        });
+                        
+                        const data = await response.json();
+                        
+                        // Display thought process
+                        if (data.thought_process && data.thought_process.length > 0) {
+                            thoughtsContainer.classList.remove('hidden');
+                            data.thought_process.forEach(step => {
+                                const thoughtDiv = document.createElement('div');
+                                thoughtDiv.className = 'thought';
+                                thoughtDiv.innerHTML = `<strong>Thought:</strong> ${step.thought}`;
+                                thoughtsDiv.appendChild(thoughtDiv);
+                                
+                                const actionDiv = document.createElement('div');
+                                actionDiv.className = 'action';
+                                actionDiv.innerHTML = `<strong>Action:</strong> ${step.action}<br><strong>Input:</strong> ${step.action_input}`;
+                                thoughtsDiv.appendChild(actionDiv);
+                                
+                                // Add observation if available
+                                if (step.observation) {
+                                    const observationDiv = document.createElement('div');
+                                    observationDiv.className = 'observation';
+                                    observationDiv.innerHTML = `<strong>Observation:</strong> ${step.observation}`;
+                                    thoughtsDiv.appendChild(observationDiv);
+                                }
+                                
+                                const resultDiv = document.createElement('div');
+                                resultDiv.className = 'result';
+                                resultDiv.innerHTML = `<strong>Result:</strong> ${step.result}`;
+                                thoughtsDiv.appendChild(resultDiv);
+                            });
+                            
+                            // Add final thought if it's in the data
+                            if (data.final_thought) {
+                                displayDetailedThought(data.final_thought);
+                            }
+                        }
+                        
+                        // Display search metrics if available
+                        if (data.search_quality) {
+                            displaySearchMetrics(data.search_quality);
+                        }
+                        
+                        // Display final response
+                        responseContainer.classList.remove('hidden');
+                        finalResponseDiv.innerHTML = data.final_response;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    responseContainer.classList.remove('hidden');
+                    finalResponseDiv.innerHTML = `<p style="color: red;">Error: ${error.message || 'Failed to get response'}</p>`;
+                } finally {
+                    loadingIndicator.classList.add('hidden');
+                    submitBtn.disabled = false;
+                }
+            });
+            
+            // Semantic search functionality
+            semanticSearchBtn.addEventListener('click', async function() {
+                const query = semanticQueryInput.value.trim();
+                if (!query) return;
+                
+                // Get selected topic
+                const selectedTopic = document.querySelector('.topic-item.selected').getAttribute('data-topic');
+                
+                // Show loading state
+                semanticSearchBtn.disabled = true;
+                semanticSearchBtn.innerHTML = '<span class="loading"></span> Searching...';
+                
+                try {
+                    const response = await fetch(`${API_BASE_URL}/semantic/search?topic=${selectedTopic}&query=${encodeURIComponent(query)}`);
+                    const data = await response.json();
+                    
+                    // Display results
+                    semanticResults.classList.remove('hidden');
+                    
+                    if (data.results && data.results.length > 0) {
+                        let resultsHtml = '';
+                        
+                        data.results.forEach((result, index) => {
+                            const score = result.score;
+                            let credibilityClass = 'credibility-medium';
+                            
+                            if (score > 0.8) credibilityClass = 'credibility-high';
+                            else if (score < 0.5) credibilityClass = 'credibility-low';
+                            
+                            resultsHtml += `
+                                <div class="result-item">
+                                    <div>
+                                        <span class="credibility-indicator ${credibilityClass}"></span>
+                                        <strong>Match Score: ${score.toFixed(2)}</strong>
+                                    </div>
+                                    <div><strong>Source:</strong> ${result.metadata.source}</div>
+                                    <p>${result.content}</p>
+                                </div>
+                            `;
+                        });
+                        
+                        semanticResultsContent.innerHTML = resultsHtml;
+                    } else {
+                        semanticResultsContent.innerHTML = '<p>No results found. Try a different query or topic.</p>';
+                    }
+                } catch (error) {
+                    console.error('Error with semantic search:', error);
+                    semanticResultsContent.innerHTML = `<p style="color: red;">Error: ${error.message || 'Failed to perform semantic search'}</p>`;
+                } finally {
+                    semanticSearchBtn.disabled = false;
+                    semanticSearchBtn.textContent = 'Search';
+                }
+            });
+            
+            // Load semantic topics
+            async function loadSemanticTopics() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/semantic/topics`);
+                    const data = await response.json();
+                    
+                    // Clear existing topics, keeping only the default one
+                    topicList.innerHTML = '<div class="topic-item selected" data-topic="default">default</div>';
+                    
+                    // Add topics from response
+                    if (data.topics && data.topics.length > 0) {
+                        data.topics.forEach(topic => {
+                            if (topic !== 'default') {
+                                const topicElement = document.createElement('div');
+                                topicElement.className = 'topic-item';
+                                topicElement.setAttribute('data-topic', topic);
+                                topicElement.textContent = topic;
+                                topicList.appendChild(topicElement);
+                            }
+                        });
+                    }
+                    
+                    // Add click event to topics
+                    document.querySelectorAll('.topic-item').forEach(item => {
+                        item.addEventListener('click', () => {
+                            document.querySelectorAll('.topic-item').forEach(i => i.classList.remove('selected'));
+                            item.classList.add('selected');
+                        });
+                    });
+                } catch (error) {
+                    console.error('Error loading semantic topics:', error);
+                }
+            }
+            
+            // Cache management functionality
+            async function loadCacheStats() {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/cache/stats`);
+                    const data = await response.json();
+
+                    cacheTotalSpan.textContent = data.total_entries || 0;
+                    cacheActiveSpan.textContent = data.active_entries || 0;
+                    cacheExpiredSpan.textContent = data.expired_entries || 0;
+                } catch (error) {
+                    console.error('Error loading cache stats:', error);
+                    cacheTotalSpan.textContent = "Error loading stats";
+                    cacheActiveSpan.textContent = "-";
+                    cacheExpiredSpan.textContent = "-";
+                }
+            }
+            
+            // Refresh cache stats button
+            refreshCacheBtn.addEventListener('click', loadCacheStats);
+            
+            // Clear cache button
+            clearCacheBtn.addEventListener('click', async function() {
+                try {
+                    clearCacheBtn.disabled = true;
+                    clearCacheBtn.textContent = "Clearing...";
+                    
+                    const response = await fetch(`${API_BASE_URL}/cache/clear`, {
+                        method: 'POST'
+                    });
+                    
+                    const data = await response.json();
+                    
+                    alert(data.message || "Cache cleared successfully");
+                    
+                    // Reload cache stats
+                    loadCacheStats();
+                } catch (error) {
+                    console.error('Error clearing cache:', error);
+                    alert("Error clearing cache: " + (error.message || "Unknown error"));
+                } finally {
+                    clearCacheBtn.disabled = false;
+                    clearCacheBtn.textContent = "Clear Cache";
+                }
+            });
+            
+            function renderThought(thought) {
+                const div = document.createElement('div');
+                
+                switch (thought.type) {
+                    case 'llm_start':
+                        div.className = 'thought';
+                        div.innerHTML = `<em>${thought.content}</em>`;
+                        break;
+                    case 'llm_thought':
+                        div.className = 'thought';
+                        div.innerHTML = `<strong>Thinking:</strong> ${thought.content}`;
+                        break;
+                    case 'agent_action':
+                        div.className = 'action';
+                        let actionContent = `<strong>Action:</strong> ${thought.tool}<br><strong>Input:</strong> ${thought.tool_input}`;
+                        if (thought.log) {
+                            actionContent += `<br><em>${thought.log}</em>`;
+                        }
+                        div.innerHTML = actionContent;
+                        break;
+                    case 'tool_start':
+                        div.className = 'action';
+                        div.innerHTML = `<strong>Using tool:</strong> ${thought.tool}<br><strong>With input:</strong> ${thought.input}`;
+                        break;
+                    case 'tool_result':
+                        div.className = 'result';
+                        div.innerHTML = `<strong>Tool result:</strong> ${thought.content}`;
+                        break;
+                    case 'observation':
+                        div.className = 'observation';
+                        div.innerHTML = `<strong>Observation:</strong> ${thought.content}`;
+                        break;
+                    case 'final_thought':
+                        div.className = 'final-thought';
+                        div.innerHTML = `<strong>Final thought:</strong> ${thought.content}`;
+                        break;
+                    case 'agent_finish':
+                        div.className = 'thought';
+                        div.innerHTML = `<strong>Final answer:</strong> ${thought.content}`;
+                        break;
+                    default:
+                        return;
+                }
+                
+                thoughtsDiv.appendChild(div);
+                
+                // Auto-scroll to the latest thought
+                thoughtsDiv.scrollTop = thoughtsDiv.scrollHeight;
+            }
+            
+            function displayDetailedThought(content) {
+                detailedThoughtContainer.classList.remove('hidden');
+                        
+                // Use marked to convert markdown to HTML
+                finalDetailedThoughtDiv.innerHTML = marked.parse(content);
+                        
+                // Expand the content area
+                const collapsibleContent = document.querySelector('.collapsible-content');
+                collapsibleContent.style.maxHeight = collapsibleContent.scrollHeight + "px";
+            }
+            
+            function displaySearchMetrics(metrics) {
+                // Enhanced metrics display
+                let metricsHtml = '';
+                
+                // Handle different metric formats
+                if (metrics.num_searches !== undefined) {
+                    // Standard format
+                    metricsHtml += `
+                        <div class="search-metric"><strong>Searches:</strong> ${metrics.num_searches || 0}</div>
+                        <div class="search-metric"><strong>Info Richness:</strong> ${metrics.info_richness || 'medium'}</div>
+                        <div class="search-metric"><strong>Search Depth:</strong> ${metrics.search_depth || 'standard'}</div>
+                    `;
+                } else if (metrics.count !== undefined) {
+                    // Enhanced format with more detailed metrics
+                    metricsHtml += `
+                        <div class="search-metric"><strong>Results Count:</strong> ${metrics.count || 0}</div>
+                        <div class="search-metric"><strong>Unique Sources:</strong> ${metrics.unique_domains || 0}</div>
+                        <div class="search-metric"><strong>Source Diversity:</strong> ${(metrics.domain_diversity || 0).toFixed(2)}/1.0</div>
+                        <div class="search-metric"><strong>Avg. Credibility:</strong> ${(metrics.average_credibility || 0).toFixed(2)}/1.0</div>
+                    `;
+                }
+                
+                searchMetricsDiv.innerHTML = metricsHtml;
+            }
+            
+            // Allow submitting with Enter key
+            queryInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    submitBtn.click();
+                }
+            });
+            
+            semanticQueryInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    semanticSearchBtn.click();
+                }
+            });
+            
+            // Show/hide search type specific inputs
+            searchTypeSelect.addEventListener('change', function() {
+                const searchType = this.value;
+                
+                // Reset visibility
+                topicInput.style.display = 'none';
+                
+                // Show relevant inputs based on search type
+                if (searchType === 'semantic') {
+                    topicInput.style.display = 'inline-block';
+                }
+            });
+            
+            // Initialize by hiding topic input initially
+            topicInput.style.display = 'none';
         });
     </script>
 </body>
